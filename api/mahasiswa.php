@@ -9,7 +9,7 @@
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
-
+header('Content-Type: application/json; charset=utf-8');
 // Tangani HTTP OPTIONS Pre-flight request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -69,13 +69,34 @@ switch ($method) {
 function handleGet(PDO $pdo, ?int $id): void {
     if ($id !== null && $id > 0) {
         //Percobaan 5-2 Langkah 2 jika id diberikan
+        $stmt = $pdo->prepare('SELECT id, npm, nama, program_studi, angkatan, email, crated_at FROM mahasiswa WHERE id = :id LIMIT 1');
+        $stmt->execute([':id => $id']);
+        $mahasiswa = $stmt->fetch();
 
+        if ($mahasiswa){
+            http_response_code(200);
+            echo json_encode(['status' => 'succes', 'data' => $mahasiswa]);
+        }
+        else {
+            http_response_code(404);
+            echo json_encode(['status' => 'eror', 'message' => "mahasiswa dengan id {$id} tidak ditemukan."]);
+        }
+        
     } else {
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         if (!empty($search)) {
             //Percobaan 5-2 Langkah 2 jika search ada
+            $stmt = $pdo->prepare('SELECT id, npm, nama, program_studi, angkatan, email, crated_at FROM mahasiswa WHERE npm LIKE :kw1 OR nama LIKE :kw2 OR program_studi LIKE :kw3 ORDER BY id DESC');
+            $kw = "%{search}%";
+            $stmt->execute([
+                ':kw1 => $kw',
+                ':kw2 => $kw',
+                ':kw3 => $kw',
+            ]);
+
         } else {
             //Percobaan 5-2 Langkah 2 jika tidak ada search
+            $stmt = $pdo->query('SELECT id, npm, nama, program_studi, angkatan, email, created_at FROM mahasiswa ORDER BY id DESC');
         }
 
         $result = $stmt->fetchAll();
